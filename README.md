@@ -31,25 +31,25 @@ macOS/Linux
 ### 3️⃣ Install Dependencies
 Install all required Python packages:
 
-pip install -r requirements.txt
+`pip install -r requirements.txt`
 
 If you haven't generated requirements.txt yet, do this:
 
-pip freeze > requirements.txt
+`pip freeze > requirements.txt`
 
 ### 4️⃣ Create & Configure Required Files
 ## 📌 Telegram Bot Token
 Create a Telegram bot via BotFather and obtain your bot token.
 Store the token in a file called token.txt (same directory as main.py).
 
-echo "YOUR_TELEGRAM_BOT_TOKEN" > token.txt
+`echo "YOUR_TELEGRAM_BOT_TOKEN" > token.txt`
 
 ### 5️⃣ Configure wallet_settings.json
 This file stores wallets to track and their alert settings.
 
 Example format:
 
-{
+```{
     "bc1qexamplewallet1": {
         "start_date": "2024-02-24",
         "end_date": "2025-02-25",
