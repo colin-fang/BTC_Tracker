@@ -10,9 +10,6 @@ Features
 
 🚀 Setup Instructions
 1️⃣ Clone the Repository
-sh
-Copy
-Edit
 git clone https://github.com/YOUR_GITHUB_USERNAME/BTC_Tracker.git
 cd BTC_Tracker
 2️⃣ Set Up Virtual Environment
