@@ -123,7 +123,7 @@ async def start_tracking(chat_id, user_id, wallet):
     await bot.send_message(chat_id, "✅ Connection to mempool.space successful. Starting monitoring...")
 
     # Start continuous tracking in poke_blockchain
-    await poke_blockchain(chat_id, user_id, wallet)
+    await poke_blockchain(chat_id, user_id)
 
 async def return_balance(wallet):
     # Load wallet from JSON file instead of temporary storage
@@ -154,77 +154,74 @@ async def return_balance(wallet):
 
     return total_balance
 
-async def poke_blockchain(chat_id, user_id, wallet):
-    """Continuously checks for new transactions and alerts only when a new one is found."""
-    seen_transactions = set()  # Keep track of previously seen transactions
+async def poke_blockchain(chat_id, user_id):
+    """Continuously checks for new transactions and alerts only when a new one is found for all wallets."""
+    seen_transactions = {}  # Dictionary to track seen transactions per wallet
     iteration = 0
 
     while await bot.get_state(user_id) == "tracking":
         iteration += 1
 
-         # Check if tracking should continue
-        if not is_tracking_active(wallet):
-            print(f"📅 Tracking period over for {wallet}. Stopping tracking.")
-            await bot.send_message(chat_id, f"📅 Tracking period over for {wallet}. Stopping tracking.")
+        # Load latest wallet settings each cycle (in case new wallets are added)
+        wallet_settings = load_wallet_settings()
+
+        if not wallet_settings:
+            print(f"❌ No wallets found. Stopping tracking.")
             await bot.set_state(user_id, "menu")
+            await bot.send_message(chat_id, text="❌ No wallets found. Stopping tracking.", reply_markup=keyboards["menu"])
             return
 
-        print(f"[{iteration}] Checking transaction status for wallet: {wallet}")
-        await bot.send_message(chat_id, text=f"[{iteration}] Checking transaction status...")
+        response = f"🔎 **Checking transaction status (Cycle {iteration})**\n"
 
-        # Fetch wallet details from mempool.space API
-        wallet_url = f"https://mempool.space/api/address/{wallet}"
-        wallet_info = await HTTPSession.get_json_response(wallet_url)
+        for wallet in wallet_settings.keys():
+            if not is_tracking_active(wallet):
+                response += f"⏳ Not currently within tracking period for {wallet}. Skipping.\n"
+                continue
 
-        if not wallet_info:
-            print(f"[{iteration}] ⚠️ Error: Could not fetch wallet details.")
-            await bot.send_message(chat_id, "⚠️ Could not fetch wallet details. Retrying in 30s...")
-            await asyncio.sleep(30)
-            continue
+            # Fetch wallet transactions
+            txs_url = f"https://mempool.space/api/address/{wallet}/txs/mempool"
+            txs_info = await HTTPSession.get_json_response(txs_url)
 
-        # Debug: Print the full wallet JSON response
-        wallet_json = json.dumps(wallet_info, indent=4)
-        print(f"[{iteration}] Wallet JSON Response:\n{wallet_json}")
+            if not txs_info or len(txs_info) == 0:
+                response += f"✅ No new transactions for `{wallet}`.\n"
+                continue
 
+            latest_tx_hash = txs_info[0]["txid"]
+            if wallet in seen_transactions and latest_tx_hash in seen_transactions[wallet]:
+                response += f"🟡 No new transactions for `{wallet}`.\n"
+                continue
 
+            # New transaction detected
+            if wallet not in seen_transactions:
+                seen_transactions[wallet] = set()
+            seen_transactions[wallet].add(latest_tx_hash)
 
-        # Fetch transactions from mempool
-        txs_url = f"https://mempool.space/api/address/{wallet}/txs/mempool"
-        txs_info = await HTTPSession.get_json_response(txs_url)
+            response += f"⚡ New transaction detected for `{wallet}`! Checking balance...\n"
 
-        if not txs_info or len(txs_info) == 0:
-            print(f"[{iteration}] No new unconfirmed transactions found.")
-            continue
+            # Fetch wallet balance
+            wallet_balance = await return_balance(wallet)
+            if wallet_balance is None:
+                response += f"❌ Error retrieving balance for `{wallet}`.\n"
+                continue
 
-        # Get the latest transaction hash
-        latest_tx_hash = txs_info[0]["txid"]
+            # Get threshold for the wallet
+            threshold = wallet_settings[wallet].get("threshold", 0.01)  # Default threshold
 
-        #if latest_tx_hash in seen_transactions:
-            print(f"[{iteration}] No new transactions. Latest seen: {txs_info}")
-            continue  # Skip if it's not a new transaction
+            # Send alert if balance drops below threshold
+            if wallet_balance < threshold:
+                response += f"⚠️ Balance Alert! `{wallet}` balance dropped below `{threshold}` BTC to `{wallet_balance:.8f}` BTC.\n"
 
-        # New transaction detected!
-        seen_transactions.add(latest_tx_hash)
-        # Check balance only after detecting a transaction
-        wallet_balance = await return_balance(wallet)
+        # Send the response to the user
+        # await bot.send_message(chat_id, response)
+        print(response)
 
-        if wallet_balance is None:
-            print(f"[{iteration}] ❌ Error retrieving balance for {wallet}. Skipping alert.")
-            continue
-
-        # Get threshold from wallet settings
-        threshold = wallet_settings.get(wallet, {}).get("threshold", 0.01)  # Default threshold
-
-        # If balance is below threshold, send alert
-        if wallet_balance < threshold:
-            print(f"⚠️ Balance Alert! Wallet {wallet} balance dropped below {threshold} BTC to {wallet_balance:.8f} BTC.")
-            await bot.send_message(chat_id, f"⚠️ Balance Alert! Wallet {wallet} balance dropped below {threshold} BTC to {wallet_balance:.8f} BTC.")
-        
-        await bot.send_message(chat_id, text=f"[{iteration}] Waiting 30s")
+        # Wait 30 seconds before checking again
         await asyncio.sleep(30)
-        continue
+
+    # Stop tracking if user exits tracking state
     await bot.set_state(user_id, "menu")
-    await bot.send_message(chat_id, text="stopped tracking", reply_markup=keyboards["menu"])
+    await bot.send_message(chat_id, "Tracking stopped.", reply_markup=keyboards["menu"])
+
 
 # MESSAGE HANDLERS
 
@@ -262,45 +259,43 @@ async def btn_wallet(msg):
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_balance", state="menu")
 async def check_balance(call):
-    # Load wallet from JSON file instead of temporary storage
+    # Load wallet settings from JSON file
     wallet_settings = load_wallet_settings()
     
-    # Pick the first available wallet from the file
-    wallet = next(iter(wallet_settings), None)  # Get first key (wallet address) from JSON
+    if not wallet_settings:
+        await bot.send_message(call.message.chat.id, "No wallets found in records. Please add one.")
+        return
+
+    response = "💰 **Wallet Balances:**\n"
     
-    if wallet is None:
-        await bot.send_message(call.message.chat.id, "No wallet found in records. Please add one.")
-        return
+    for wallet in wallet_settings.keys():  # Iterate over all wallets
+        # Fetch wallet info from Mempool API
+        wallet_info = await HTTPSession.get_json_response(f"https://mempool.space/api/address/{wallet}")
 
-    # Fetch wallet info from Mempool API
-    wallet_info = await HTTPSession.get_json_response(f"https://mempool.space/api/address/{wallet}")
+        if not wallet_info:
+            response += f"❌ Could not fetch balance for {wallet}.\n"
+            continue
 
-    if not wallet_info:
-        await bot.send_message(call.message.chat.id, "⚠️ Could not fetch wallet info from mempool.space.")
-        return
+        # Extract balance details
+        funded_txo_sum = wallet_info["chain_stats"].get("funded_txo_sum", 0)
+        spent_txo_sum = wallet_info["chain_stats"].get("spent_txo_sum", 0)
+        mempool_funded = wallet_info["mempool_stats"].get("funded_txo_sum", 0)  # Unconfirmed incoming
+        mempool_spent = wallet_info["mempool_stats"].get("spent_txo_sum", 0)  # Unconfirmed outgoing
+        tx_count = wallet_info["chain_stats"].get("tx_count", 0)
 
-    # Extract balance details
-    funded_txo_sum = wallet_info["chain_stats"].get("funded_txo_sum", 0)
-    spent_txo_sum = wallet_info["chain_stats"].get("spent_txo_sum", 0)
-    mempool_funded = wallet_info["mempool_stats"].get("funded_txo_sum", 0)  # Unconfirmed incoming
-    mempool_spent = wallet_info["mempool_stats"].get("spent_txo_sum", 0)  # Unconfirmed outgoing
-    tx_count = wallet_info["chain_stats"].get("tx_count", 0)
+        # Calculate total balance (confirmed + unconfirmed)
+        confirmed_balance = (funded_txo_sum - spent_txo_sum) / 100_000_000  # BTC
+        mempool_balance = (mempool_funded - mempool_spent) / 100_000_000  # BTC
+        total_balance = confirmed_balance + mempool_balance  # Include unconfirmed tx
 
-    # Correct balance calculation (confirmed + mempool)
-    confirmed_balance = (funded_txo_sum - spent_txo_sum) / 100_000_000  # BTC
-    mempool_balance = (mempool_funded - mempool_spent) / 100_000_000  # BTC
-    total_balance = confirmed_balance + mempool_balance  # Include unconfirmed tx
+        response += (
+            f"🔹 **Wallet:** `{wallet}`\n"
+            f"✅ Confirmed: `{confirmed_balance:.8f} BTC`\n"
+            f"⏳ Unconfirmed: `{mempool_balance:.8f} BTC`\n"
+            f"💳 **Total:** `{total_balance:.8f} BTC`\n"
+            f"📜 Transactions: `{tx_count}`\n\n"
+        )
 
-    # Build response message
-    response = (
-        f"💰 **Wallet Balance**\n"
-        f"🔹 Confirmed: {confirmed_balance:.8f} BTC\n"
-        f"🔸 Unconfirmed: {mempool_balance:.8f} BTC\n"
-        f"💳 **Total Balance**: {total_balance:.8f} BTC\n"
-        f"📜 Transactions: {tx_count}"
-    )
-
-    # Send balance info to user
     await bot.send_message(call.message.chat.id, text=response)
     
 
