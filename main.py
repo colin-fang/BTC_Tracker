@@ -210,9 +210,11 @@ async def poke_blockchain(chat_id, user_id):
             # Send alert if balance drops below threshold
             if wallet_balance < threshold:
                 response += f"⚠️ Balance Alert! `{wallet}` balance dropped below `{threshold}` BTC to `{wallet_balance:.8f}` BTC.\n"
+                await bot.send_message(chat_id, response)
+                
 
         # Send the response to the user
-        # await bot.send_message(chat_id, response)
+        #await bot.send_message(chat_id, response)
         print(response)
 
         # Wait 30 seconds before checking again
