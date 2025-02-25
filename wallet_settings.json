@@ -1,0 +1,17 @@
+{
+    "bc1qc694s2p2r2m84pc0vvn05hh5522sct3vuauqjr": {
+        "start_date": "2025-02-14",
+        "end_date": "2025-03-02",
+        "threshold": 1.0
+    },
+    "bc1q9wet0nt7zjzp8gfgm7nr2zuy49g3epk5743ww6": {
+        "start_date": "2025-02-24",
+        "end_date": "2025-03-02",
+        "threshold": 1.0
+    },
+    "bc1qddvmdc9t8tad2eqd7vfwv2mexjzs49f42wvg27": {
+        "start_date": "2024-02-24",
+        "end_date": "2024-03-03",
+        "threshold": 1000.0
+    }
+}
