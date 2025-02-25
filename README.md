@@ -60,7 +60,7 @@ Example format:
         "end_date": "2025-02-25",
         "threshold": 5.0
     }
-}
+}```
 💡 Fields explained:
 
 "start_date" and "end_date" define when tracking should be active.
