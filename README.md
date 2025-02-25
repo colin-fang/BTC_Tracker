@@ -69,19 +69,19 @@ Example format:
 ### 6️⃣ Run the Bot
 Start the bot with:
 
-python main.py
+`python main.py`
 
 The bot will now listen for messages and track wallets. 🎯
 
 ### 🔧 Additional Configuration
 Modify Polling Time
 The bot currently checks wallets every 30 seconds.
-To modify, change the await asyncio.sleep(30) in poke_blockchain().
+To modify, change the `await asyncio.sleep(30) in poke_blockchain()`.
 ### 🛠 Troubleshooting
 ❌ ModuleNotFoundError: No module named 'aiohttp'
 ✔️ Install missing dependencies:
 
-pip install aiohttp telebot
+`pip install aiohttp telebot`
 
 ❌ Token is invalid
 ✔️ Ensure token.txt contains the correct Telegram bot token.
