@@ -48,8 +48,8 @@ Store the token in a file called token.txt (same directory as main.py).
 This file stores wallets to track and their alert settings.
 
 Example format:
-
-```{
+```
+{
     "bc1qexamplewallet1": {
         "start_date": "2024-02-24",
         "end_date": "2025-02-25",
@@ -60,7 +60,8 @@ Example format:
         "end_date": "2025-02-25",
         "threshold": 5.0
     }
-}```
+}
+```
 💡 Fields explained:
 
 "start_date" and "end_date" define when tracking should be active.
