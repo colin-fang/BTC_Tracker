@@ -11,6 +11,7 @@ A Telegram bot that tracks Bitcoin wallet balances and sends alerts when transac
 ## 🚀 Setup Instructions
 ### 1️⃣ Clone the Repository
 `git clone https://github.com/colin-fang/BTC_Tracker.git`
+
 `cd BTC_Tracker`
 
 ### 2️⃣ Set Up Virtual Environment
