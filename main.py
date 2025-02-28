@@ -13,7 +13,6 @@ import json
 import time
 import os
 from datetime import datetime
-#dummy
 wallets_file = "wallet_settings.json"
 
 with open("token.txt", "r") as token:
@@ -355,14 +354,11 @@ async def wallet_query(msg):
 
 @bot.message_handler(state="awaiting_start_date")
 async def process_start_date(msg):
-    print(f"Received start date: {msg.text}")  # Debugging
     """Handles user input for tracking start date."""
     async with bot.retrieve_data(msg.from_user.id) as data:
         wallet = data.get("wallet")
-    print(f"start date wallet: {wallet}")  # Debugging
     start_date = msg.text.strip()
     
-    print(f"start date start_date: {start_date}")  # Debugging
     # Validate date format
     try:
         datetime.strptime(start_date, "%Y-%m-%d")
@@ -382,7 +378,6 @@ async def process_end_date(msg):
         wallet = data.get("wallet")
         start_date = data.get("start_date")
     
-    print(f"end_date wallet and start_date: {wallet} + {start_date}")  # Debugging
 
     end_date = msg.text.strip()
 
@@ -441,7 +436,6 @@ async def wrong_command(msg):
 
 @bot.message_handler(func=lambda msg: True)#Keep this at the very bottom because it only detects unrecognized messages because it is at the bottom.
 async def delete_unrecognized(msg):
-    print(f"delete unrecognized")  # Debugging
     await bot.delete_message(msg.chat.id, msg.message_id)
 
 if __name__ == "__main__":
