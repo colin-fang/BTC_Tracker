@@ -203,7 +203,7 @@ async def poke_blockchain(chat_id, user_id):
             if wallet_balance is None:
                 response += f"❌ Error retrieving balance for `{wallet}`.\n"
                 continue
-
+            
             # Get threshold for the wallet
             threshold = wallet_settings[wallet].get("threshold", 0.01)  # Default threshold
 
@@ -211,13 +211,15 @@ async def poke_blockchain(chat_id, user_id):
             if wallet_balance < threshold:
                 response += f"⚠️ Balance Alert! `{wallet}` balance dropped below `{threshold}` BTC to `{wallet_balance:.8f}` BTC.\n"
                 await bot.send_message(chat_id, response)
+            else:
+                response += f"Balance of `{wallet_balance:.8f}` is above `{threshold}` threshold, continuing...\n"
                 
 
         # Send the response to the user
         #await bot.send_message(chat_id, response)
         print(response)
 
-        # Wait 30 seconds before checking again
+        # Wait 10 minutes before checking again
         await asyncio.sleep(30)
 
     # Stop tracking if user exits tracking state
