@@ -3,5 +3,15 @@
         "start_date": "2025-02-28",
         "end_date": "2025-03-04",
         "threshold": 4000.0
+    },
+    "3JZq4atUahhuA9rLhXLMhhTo133J9rF97j": {
+        "start_date": "2025-03-02",
+        "end_date": "2025-03-06",
+        "threshold": 29000.0
+    },
+    "bc1q8taf2eca7pn9wu4czt8fgftqm288xtfxdyt33syzxuexxty733xsszghzk": {
+        "start_date": "2025-03-02",
+        "end_date": "2025-03-06",
+        "threshold": 35005.0
     }
 }

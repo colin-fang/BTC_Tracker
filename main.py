@@ -43,7 +43,7 @@ btns = {
 }
 keyboards = {
     "menu": telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1).add(btns["wallet"], btns["start_tracking"]),
-    "tracking": telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(btns["stop_tracking"]),
+    "tracking": telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1).add(btns["wallet"], btns["stop_tracking"]),
     "query": telebot.types.ReplyKeyboardMarkup(resize_keyboard=True).add(btns["cancel"]),
     "wallet": telebot.types.InlineKeyboardMarkup(row_width=1).add(btns["set_wallet"], btns["check_balance"]),
     "set_wallet": telebot.types.InlineKeyboardMarkup(row_width=1).add(btns["set_wallet"]),
@@ -209,10 +209,17 @@ async def poke_blockchain(chat_id, user_id):
             # Send alert if balance drops below threshold
             if wallet_balance < threshold:
                 response += f"⚠️ Balance Alert! `{wallet}` balance dropped below `{threshold}` BTC to `{wallet_balance:.8f}` BTC.\n"
+                # Add timestamp at the bottom
+                current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                response += f"🕒 **Current Timestamp:** `{current_timestamp}`"
                 await bot.send_message(chat_id, response)
             else:
                 response += f"Balance of `{wallet_balance:.8f}` is above `{threshold}` threshold, continuing...\n"
                 
+        
+        # Add timestamp at the bottom
+        current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        response += f"🕒 **Current Timestamp:** `{current_timestamp}`"
 
         # Send the response to the user
         #await bot.send_message(chat_id, response)
@@ -253,14 +260,30 @@ async def debug(msg):
 
 @bot.message_handler(text_startswith=icons["wallet"])
 async def btn_wallet(msg):
-    async with bot.retrieve_data(msg.from_user.id) as data:
-        if data is None or (wallet := data.get("wallet")) is None:
-            response = "BTC wallet is not set"
-        else:
-            response = f"BTC Wallet:\n{wallet}"
+    wallet_settings = load_wallet_settings()  # Load latest wallet settings
+
+    if not wallet_settings:
+        response = "No wallets found in records. Please add one."
+    else:
+        response = "**📄 Tracked Wallets:**\n"
+        for wallet, details in wallet_settings.items():
+            start_date = details.get("start_date", "N/A")
+            end_date = details.get("end_date", "N/A")
+            threshold = details.get("threshold", "N/A")
+
+            response += (
+                f"🔹 **Wallet:** `{wallet}`\n"
+                f"📅 **Start Date:** {start_date}\n"
+                f"📅 **End Date:** {end_date}\n"
+                f"⚠️ **Alert Threshold:** {threshold} BTC\n\n"
+            )
+    
+    # Add timestamp at the bottom
+    current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    response += f"🕒 **Current Timestamp:** `{current_timestamp}`"
     await bot.send_message(msg.chat.id, text=response, reply_markup=keyboards["wallet"])
 
-@bot.callback_query_handler(func=lambda call: call.data == "check_balance", state="menu")
+@bot.callback_query_handler(func=lambda call: call.data == "check_balance", state=["menu", "tracking"])
 async def check_balance(call):
     # Load wallet settings from JSON file
     wallet_settings = load_wallet_settings()
@@ -299,6 +322,9 @@ async def check_balance(call):
             f"📜 Transactions: `{tx_count}`\n\n"
         )
 
+    # Add timestamp at the bottom
+    current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    response += f"🕒 **Current Timestamp:** `{current_timestamp}`"
     await bot.send_message(call.message.chat.id, text=response)
     
 
@@ -327,10 +353,15 @@ async def btn_stop_tracking(msg):
     await bot.set_state(msg.from_user.id, "menu")
     await bot.send_message(msg.chat.id, text="Transaction tracking off", reply_markup=keyboards["menu"])
 
-@bot.callback_query_handler(func=lambda call: call.data == "set_new_wallet", state="menu")
+@bot.callback_query_handler(func=lambda call: call.data == "set_new_wallet", state=["menu", "tracking"])
 async def btn_set_wallet(call):
-    await bot.set_state(call.from_user.id, "wallet_query")
-    await bot.send_message(call.message.chat.id, text="Enter new wallet", reply_markup=keyboards["query"])
+    user_state = await bot.get_state(call.from_user.id)  # Retrieve user's current state
+
+    if user_state == "tracking":
+        await bot.send_message(call.message.chat.id, text="You must stop tracking to set a new wallet")
+    else:
+        await bot.set_state(call.from_user.id, "wallet_query")
+        await bot.send_message(call.message.chat.id, text="Enter new wallet", reply_markup=keyboards["query"])
 
 
 @bot.message_handler(state="wallet_query")
