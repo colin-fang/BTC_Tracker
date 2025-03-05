@@ -273,15 +273,15 @@ async def btn_wallet(msg):
 
             response += (
                 f"🔹 **Wallet:** `{wallet}`\n"
-                f"📅 **Start Date:** {start_date}\n"
-                f"📅 **End Date:** {end_date}\n"
-                f"⚠️ **Alert Threshold:** {threshold} BTC\n\n"
+                f"📅 **Start Date:** `{start_date}`\n"
+                f"📅 **End Date:** `{end_date}`\n"
+                f"⚠️ **Alert Threshold:** `{threshold}` BTC\n\n"
             )
     
     # Add timestamp at the bottom
     current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     response += f"🕒 **Current Timestamp:** `{current_timestamp}`"
-    await bot.send_message(msg.chat.id, text=response, reply_markup=keyboards["wallet"])
+    await bot.send_message(msg.chat.id, text=response, reply_markup=keyboards["wallet"], parse_mode="MarkdownV2")
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_balance", state=["menu", "tracking"])
 async def check_balance(call):
@@ -292,7 +292,7 @@ async def check_balance(call):
         await bot.send_message(call.message.chat.id, "No wallets found in records. Please add one.")
         return
 
-    response = "💰 **Wallet Balances:**\n"
+    response = "**🔥 Raemoir Capital BOT 🔥**\n\n💰 **Wallet Balances:**\n"
     
     for wallet in wallet_settings.keys():  # Iterate over all wallets
         # Fetch wallet info from Mempool API
@@ -325,7 +325,7 @@ async def check_balance(call):
     # Add timestamp at the bottom
     current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     response += f"🕒 **Current Timestamp:** `{current_timestamp}`"
-    await bot.send_message(call.message.chat.id, text=response)
+    await bot.send_message(call.message.chat.id, text=response, parse_mode="MarkdownV2")
     
 
 @bot.message_handler(text_startswith=icons["start_tracking"], state="menu")
@@ -453,10 +453,10 @@ async def process_threshold(msg):
     save_wallet_settings()  # Save the updated settings
 
     await bot.set_state(msg.from_user.id, "menu")
-    await bot.send_message(msg.chat.id, f"✅ Wallet {wallet} has been successfully added!\n"
-                                        f"📅 Start Date: {start_date}\n"
-                                        f"📅 End Date: {end_date}\n"
-                                        f"⚠️ Alert if balance drops below {threshold} BTC.", reply_markup=keyboards["menu"])
+    await bot.send_message(msg.chat.id, f"✅ Wallet `{wallet}` has been successfully added\n"
+                                        f"📅 Start Date: `{start_date}`\n"
+                                        f"📅 End Date: `{end_date}`\n"
+                                        f"⚠️ Alert if balance drops below `{threshold}` BTC", reply_markup=keyboards["menu"], parse_mode="MarkdownV2")
 
 
 @bot.message_handler(func=lambda msg: msg.text[0] in icons.values())
